@@ -1,0 +1,46 @@
+/* Custom styles to complement Bootstrap dark theme */
+
+/* Improve card contrast */
+.card {
+    border-color: var(--bs-gray-700);
+}
+
+/* Enhanced table styling */
+.table {
+    margin-bottom: 0;
+}
+
+.table>:not(caption)>*>* {
+    padding: 1rem;
+}
+
+/* Transaction type colors */
+[data-type="deposit"] {
+    color: var(--bs-success);
+}
+
+[data-type="withdrawal"] {
+    color: var(--bs-danger);
+}
+
+/* Calculator form improvements */
+.form-control:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Chart container */
+#growthChart {
+    margin-top: 2rem;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2.5rem;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+}

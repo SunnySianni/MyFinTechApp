@@ -1,0 +1,50 @@
+<%- include('partials/header') %>
+
+<section class="container my-4">
+    <section class="row justify-content-center">
+        <section class="col-md-8">
+            <section class="card">
+                <section class="card-body">
+                    <h2 class="card-title">Financial Calculator</h2>
+                    <form id="calculatorForm">
+                        <section class="mb-3">
+                            <label for="principal" class="form-label">Initial Amount ($)</label>
+                            <input type="number" class="form-control" id="principal" min="0" step="0.01" required>
+                        </section>
+                        <section class="mb-3">
+                            <label for="rate" class="form-label">Annual Interest Rate (%)</label>
+                            <input type="number" class="form-control" id="rate" min="0" step="0.1" required>
+                        </section>
+                        <section class="mb-3">
+                            <label for="years" class="form-label">Time Period (Years)</label>
+                            <input type="number" class="form-control" id="years" min="1" required>
+                        </section>
+                        <button type="submit" class="btn btn-primary">Calculate</button>
+                    </form>
+                    
+                    <section id="result" class="mt-4" style="display: none;">
+                        <h3>Results</h3>
+                        <section class="table-responsive">
+                            <table class="table">
+                                <tr>
+                                    <th>Final Amount:</th>
+                                    <td id="finalAmount"></td>
+                                </tr>
+                                <tr>
+                                    <th>Total Interest Earned:</th>
+                                    <td id="totalInterest"></td>
+                                </tr>
+                            </table>
+                        </section>
+                    </section>
+                </section>
+            </section>
+        </section>
+    </section>
+</section>
+
+<script>
+// Implement Event listners/handleners here
+</script>
+
+<%- include('partials/footer') %>

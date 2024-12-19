@@ -5,30 +5,54 @@
         <section class="col-md-6">
             <section class="card">
                 <section class="card-body">
-                    <h2 class="card-title text-center">Register</h2>
+                    <h2 class="card-title text-center mb-4">Register</h2>
                     
+                    <!-- Display error messages if any -->
                     <% if (messages.error) { %>
-                        <section class="alert alert-danger">
+                        <section class="alert alert-danger" role="alert">
                             <%= messages.error %>
                         </section>
                     <% } %>
 
-                    <form action="/register" method="POST">
+                    <!-- Registration form -->
+                    <form action="/register" method="POST" id="registrationForm">
+                        <!-- Username input field -->
                         <section class="mb-3">
                             <label for="username" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="username" name="username" required>
+                            <input type="text" class="form-control" id="username" name="username" required minlength="3" maxlength="20">
+                            <small class="form-text text-muted">Username must be between 3 and 20 characters.</small>
                         </section>
+
+                        <!-- Email input field -->
                         <section class="mb-3">
                             <label for="email" class="form-label">Email</label>
                             <input type="email" class="form-control" id="email" name="email" required>
                         </section>
+
+                        <!-- Password input field -->
                         <section class="mb-3">
                             <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
+                            <input type="password" class="form-control" id="password" name="password" required minlength="8">
+                            <small class="form-text text-muted">Password must be at least 8 characters long.</small>
                         </section>
+
+                        <!-- Confirm password input field -->
+                        <section class="mb-3">
+                            <label for="confirmPassword" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                        </section>
+
+                        <!-- Terms and conditions checkbox -->
+                        <section class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="agreeTerms" name="agreeTerms" required>
+                            <label class="form-check-label" for="agreeTerms">I agree to the <a href="/terms" target="_blank">Terms and Conditions</a></label>
+                        </section>
+
+                        <!-- Submit button -->
                         <button type="submit" class="btn btn-primary w-100">Register</button>
                     </form>
                     
+                    <!-- Link to login page -->
                     <section class="mt-3 text-center">
                         <p>Already have an account? <a href="/login">Login here</a></p>
                     </section>
@@ -37,5 +61,27 @@
         </section>
     </section>
 </section>
+
+<!-- Add custom JavaScript for form validation -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('registrationForm');
+        form.addEventListener('submit', function(event) {
+            const password = document.getElementById('password');
+            const confirmPassword = document.getElementById('confirmPassword');
+            const agreeTerms = document.getElementById('agreeTerms');
+
+            if (password.value !== confirmPassword.value) {
+                event.preventDefault();
+                alert('Passwords do not match');
+            }
+
+            if (!agreeTerms.checked) {
+                event.preventDefault();
+                alert('You must agree to the Terms and Conditions');
+            }
+        });
+    });
+</script>
 
 <%- include('partials/footer') %>

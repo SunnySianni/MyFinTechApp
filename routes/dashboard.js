@@ -1,5 +1,7 @@
 import express from 'express';
-// other imports maybe required based on your logic 
+import { User } from '../models/User';
+import { Transaction } from '../models/Transaction';
+import { Op } from 'sequelize';
 
 const router = express.Router();
 
@@ -42,13 +44,10 @@ const router = express.Router();
  *           type: string
  */
 
-// Adding Route guard 
+// Authentication middleware
 const requireAuth = (req, res, next) => {
-
   if (!req.session.user) {
-  
     return res.redirect('/login');
-
   }
   next();
 };
@@ -67,7 +66,30 @@ const requireAuth = (req, res, next) => {
  *       302:
  *         description: Redirect to login if not authenticated
  */
-router.get('/dashboard', requireAuth, async (req, res) => { });
+router.get('/dashboard', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.session.user.id);
+    if (!user) {
+      req.session.destroy();
+      return res.redirect('/login');
+    }
+
+    const recentTransactions = await Transaction.findAll({
+      where: { user_id: user.id },
+      order: [['timestamp', 'DESC']],
+      limit: 5
+    });
+
+    res.render('dashboard', {
+      user: user,
+      balance: user.balance,
+      recentTransactions: recentTransactions
+    });
+  } catch (error) {
+    console.error('Error in dashboard route:', error);
+    res.status(500).render('error', { message: 'An error occurred while loading the dashboard.' });
+  }
+});
 
 /**
  * @swagger
@@ -100,9 +122,44 @@ router.get('/dashboard', requireAuth, async (req, res) => { });
  *       500:
  *         description: Server error
  */
-router.post('/api/transaction', requireAuth, async (req, res) => { });
+router.post('/api/transaction', requireAuth, async (req, res) => {
+  try {
+    const { amount, type, description } = req.body;
+    const user = await User.findByPk(req.session.user.id);
 
+    if (!user) {
+      return res.status(400).json({ error: 'User not found' });
+    }
 
+    if (type === 'withdrawal' && user.balance < amount) {
+      return res.status(400).json({ error: 'Insufficient funds' });
+    }
+
+    const transaction = await Transaction.create({
+      amount,
+      type,
+      description,
+      user_id: user.id,
+      timestamp: new Date()
+    });
+
+    if (type === 'deposit') {
+      user.balance += amount;
+    } else {
+      user.balance -= amount;
+    }
+
+    await user.save();
+
+    res.json({
+      balance: user.balance,
+      transaction: transaction
+    });
+  } catch (error) {
+    console.error('Error in transaction creation:', error);
+    res.status(500).json({ error: 'An error occurred while processing the transaction.' });
+  }
+});
 
 /**
  * @swagger
@@ -118,6 +175,27 @@ router.post('/api/transaction', requireAuth, async (req, res) => { });
  *       302:
  *         description: Redirect to login if not authenticated
  */
-router.get('/transactions', requireAuth, async (req, res) => { });
+router.get('/transactions', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.session.user.id);
+    if (!user) {
+      req.session.destroy();
+      return res.redirect('/login');
+    }
+
+    const transactions = await Transaction.findAll({
+      where: { user_id: user.id },
+      order: [['timestamp', 'DESC']]
+    });
+
+    res.render('transactions', {
+      user: user,
+      transactions: transactions
+    });
+  } catch (error) {
+    console.error('Error in transactions route:', error);
+    res.status(500).render('error', { message: 'An error occurred while loading transactions.' });
+  }
+});
 
 export default router;

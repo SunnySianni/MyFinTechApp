@@ -72,8 +72,77 @@
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
 <script>
-  // You could research the Socket.io and add your implementation here 
+  // Socket.io implementation
+  const socket = io();
+
+  // Listen for 'balanceUpdate' events
+  socket.on('balanceUpdate', (data) => {
+    const balanceElement = document.getElementById('balance');
+    balanceElement.textContent = `$${parseFloat(data.newBalance).toFixed(2)}`;
+  });
+
+  // Listen for 'newTransaction' events
+  socket.on('newTransaction', (transaction) => {
+    const transactionsTable = document.getElementById('recentTransactions');
+    const newRow = transactionsTable.insertRow(0);
+    
+    newRow.innerHTML = `
+      <td>${new Date(transaction.createdAt).toLocaleString()}</td>
+      <td>${transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}</td>
+      <td>$${parseFloat(transaction.amount).toFixed(2)}</td>
+      <td>${transaction.description}</td>
+    `;
+
+    // Remove the last row if there are more than 5 transactions
+    if (transactionsTable.rows.length > 5) {
+      transactionsTable.deleteRow(transactionsTable.rows.length - 1);
+    }
+  });
 </script>
 
-<script src="/js/dashboard.js"></script>
+<script>
+  // Dashboard functionality
+  document.addEventListener('DOMContentLoaded', () => {
+    const transactionForm = document.getElementById('transactionForm');
+    const balanceElement = document.getElementById('balance');
+
+    transactionForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const type = document.getElementById('transactionType').value;
+      const amount = document.getElementById('amount').value;
+      const description = document.getElementById('description').value;
+
+      try {
+        const response = await fetch('/api/transaction', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ type, amount, description }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Transaction failed');
+        }
+
+        const data = await response.json();
+
+        // Update balance
+        balanceElement.textContent = `$${parseFloat(data.balance).toFixed(2)}`;
+
+        // Clear form
+        transactionForm.reset();
+
+        // Show success message
+        alert('Transaction successful!');
+
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Transaction failed. Please try again.');
+      }
+    });
+  });
+</script>
+
 <%- include('partials/footer') %>

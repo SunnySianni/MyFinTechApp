@@ -10,7 +10,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "The **FinTech App** is a full-stack financial application built using **Node.js**, **Express**, **MySQL**, and **Sequelize ORM**. It features secure user authentication and allows users to manage financial transactions like deposits and withdrawals.",
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "connect-flash": "^0.1.1",

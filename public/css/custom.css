@@ -1,52 +1,146 @@
-/* Custom styles */
-.navbar {
-    margin-bottom: 2rem;
-}
+/* Custom styles with pink and purple theme */
 
-.card {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-}
-
-.display-4 {
-    font-weight: 300;
-}
-
-.table th {
-    font-weight: 500;
-}
-
-footer {
-    margin-top: 3rem;
-    padding: 1rem 0;
-    text-align: center;
-    background-color: #f8f9fa;
-}
-
-.notification-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
-    min-width: 300px;
-}
-
-.notification {
-    background-color: #17a2b8;
-    color: white;
-    padding: 15px;
-    margin-bottom: 10px;
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    animation: slideIn 0.5s ease-out;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
+:root {
+    --primary-pink: #FF69B4;
+    --secondary-purple: #8A2BE2;
+    --light-pink: #FFC0CB;
+    --light-purple: #E6E6FA;
+    --dark-purple: #4B0082;
+  }
+  
+  /* Navbar styling */
+  .navbar {
+      margin-bottom: 2rem;
+      background-color: var(--primary-pink);
+  }
+  
+  /* Card styling */
+  .card {
+      box-shadow: 0 0.125rem 0.25rem rgba(138, 43, 226, 0.2);
+      border-color: var(--light-purple);
+  }
+  
+  /* Typography adjustments */
+  .display-4 {
+      font-weight: 300;
+      color: var(--dark-purple);
+  }
+  
+  /* Table header styling */
+  .table th {
+      font-weight: 500;
+      background-color: var(--light-pink);
+  }
+  
+  /* Footer styling */
+  footer {
+      margin-top: 3rem;
+      padding: 1rem 0;
+      text-align: center;
+      background-color: var(--light-purple);
+      color: var(--dark-purple);
+  }
+  
+  /* Notification container positioning */
+  .notification-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      min-width: 300px;
+  }
+  
+  /* Individual notification styling */
+  .notification {
+      background-color: var(--secondary-purple);
+      color: white;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      box-shadow: 0 2px 5px rgba(138, 43, 226, 0.3);
+      animation: slideIn 0.5s ease-out;
+  }
+  
+  /* Animation for sliding in notifications */
+  @keyframes slideIn {
+      from {
+          transform: translateX(100%);
+          opacity: 0;
+      }
+      to {
+          transform: translateX(0);
+          opacity: 1;
+      }
+  }
+  
+  /* Button hover effects */
+  .btn {
+      background-color: var(--primary-pink);
+      border-color: var(--primary-pink);
+      color: white;
+  }
+  
+  .btn:hover {
+      background-color: var(--secondary-purple);
+      border-color: var(--secondary-purple);
+      transform: translateY(-2px);
+      transition: all 0.2s ease-in-out;
+  }
+  
+  /* Form input focus styles */
+  .form-control:focus {
+      border-color: var(--primary-pink);
+      box-shadow: 0 0 0 0.2rem rgba(255, 105, 180, 0.25);
+  }
+  
+  /* Responsive image styling */
+  .img-fluid {
+      max-width: 100%;
+      height: auto;
+  }
+  
+  /* Custom link color */
+  a.custom-link {
+      color: var(--secondary-purple);
+      text-decoration: none;
+  }
+  
+  a.custom-link:hover {
+      color: var(--primary-pink);
+      text-decoration: underline;
+  }
+  
+  /* Custom alert styles */
+  .alert-custom {
+      background-color: var(--light-pink);
+      border-color: var(--primary-pink);
+      color: var(--dark-purple);
+  }
+  
+  /* Responsive typography */
+  @media (max-width: 768px) {
+      body {
+          font-size: 14px;
+          background-color: var(--light-purple);
+      }
+      .display-4 {
+          font-size: 2.5rem;
+      }
+  }
+  
+  /* Additional pink and purple styles */
+  body {
+      color: var(--dark-purple);
+  }
+  
+  .bg-custom {
+      background-color: var(--light-purple);
+  }
+  
+  .text-custom {
+      color: var(--primary-pink);
+  }
+  
+  .border-custom {
+      border-color: var(--secondary-purple) !important;
+  }

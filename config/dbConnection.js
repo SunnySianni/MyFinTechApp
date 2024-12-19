@@ -1,34 +1,15 @@
 import { Sequelize } from 'sequelize';
-import 'dotenv/config'
+import 'dotenv/config';
 
-console.log("Connecting to database..."); 
-console.log("Connecting to database..."); 
-console.log("Process.env.D"); 
-console.log("Connecting to database..."); 
-
-
-const dbconn = new Sequelize(
-  
-  process.env.DB_NAME, 
-  process.env.DB_USER, 
+const sequelize = new Sequelize(
+  process.env.DB_NAME,
+  process.env.DB_USER,
   process.env.DB_PASSWORD,
-  
   {
-  host: process.env.DB_HOST,
-  dialect: process.env.DB_DIALECT,
-  logging: true,
-  pool: {
-    max: 5,
-    min: 0,
-    acquire: 30000,
-    idle: 10000
+    host: process.env.DB_HOST,
+    dialect: 'mysql',
+    port: process.env.DB_PORT
   }
-  // dialectOptions: {
-  //   ssl: {
-  //     require: true,
-  //     rejectUnauthorized: false
-  //   }
-  // }
-});
+);
 
-export default dbconn;
+export default sequelize;

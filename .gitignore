@@ -2,5 +2,5 @@ node_modules/
 .config
 .local
 .upm
-.evn
+.env
 .global-prompt.md

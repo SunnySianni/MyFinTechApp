@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
-import { User } from '../models/User'; // Import User model
-import { authenticateUser } from '../middleware/auth'; // Import authentication middleware
+import  User  from '../models/User.js'; // Import User model
+import authenticateUser from '../middleware/auth.js'; // Import authentication middleware
 
 const router = express.Router();
 

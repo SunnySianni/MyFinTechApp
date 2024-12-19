@@ -1,6 +1,6 @@
 import express from 'express';
-import { User } from '../models/User'; // Import User model for database operations
-
+import User  from '../models/User.js';
+import  Transaction  from '../models/Transaction.js';
 const router = express.Router();
 
 // Authentication middleware

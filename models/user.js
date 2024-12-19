@@ -1,5 +1,5 @@
 import { DataTypes } from 'sequelize';
-import sequelize from '../config/config.js'; 
+import sequelize from '../config/dbConnection.js'; 
 
 const User = sequelize.define('User', {
  // Define user attributes (e.g., id, username, email, password_hash, balance)

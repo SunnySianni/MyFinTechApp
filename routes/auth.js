@@ -23,7 +23,7 @@ router.post('/login', async (req, res) => {
     // If user not found, redirect back to login with error message
     if (!user) {
       req.flash('error', 'Invalid email or password');
-      return res.redirect('/login');
+      return res.redirect('/auth/login');
     }
 
     // Compare provided password with stored hash
@@ -32,17 +32,31 @@ router.post('/login', async (req, res) => {
     // If password is invalid, redirect back to login with error message
     if (!isValidPassword) {
       req.flash('error', 'Invalid email or password');
-      return res.redirect('/login');
+      return res.redirect('/auth/login');
     }
 
-    // Set user ID in session and redirect to dashboard
+    // Set session data
     req.session.userId = user.id;
-    res.redirect('/dashboard');
+    req.session.user = {
+      id: user.id,
+      email: user.email,
+      name: user.name
+    };
+    
+    // Save session before redirect
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        req.flash('error', 'Login failed');
+        return res.redirect('/auth/login');
+      }
+      res.redirect('/dashboard');
+    });
+
   } catch (error) {
-    // Log error and redirect back to login with generic error message
     console.error('Login error:', error);
     req.flash('error', 'An error occurred during login');
-    res.redirect('/login');
+    res.redirect('/auth/login');
   }
 });
 
@@ -53,38 +67,61 @@ router.get('/register', (req, res) => {
 
 // Route to handle user registration
 router.post('/register', async (req, res) => {
-  const { username, email, password } = req.body;
-
   try {
-    // Check if user with this email already exists
-    const existingUser = await User.findOne({ where: { email } });
+    const { username, email, password } = req.body;
 
-    // If user exists, redirect back to registration with error message
+    // Basic validation
+    if (!username || !email || !password) {
+      req.flash('error', 'All fields are required');
+      return res.redirect('/auth/register');
+    }
+
+    // Check password strength
+    if (password.length < 6) {
+      req.flash('error', 'Password must be at least 6 characters long');
+      return res.redirect('/auth/register');
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      req.flash('error', 'Email already in use');
-      return res.redirect('/register');
+      req.flash('error', 'Email already registered');
+      return res.redirect('/auth/register');
     }
 
     // Hash the password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user in the database
+    // Create a new user
     const newUser = await User.create({
-      username,
-      email,
-      password_hash: hashedPassword,
-      balance: 0.00 // Set initial balance to 0
+      name: username,
+      email: email.toLowerCase(), // Convert email to lowercase
+      password_hash: hashedPassword
     });
 
-    // Set user ID in session and redirect to dashboard
+    // Set user session
     req.session.userId = newUser.id;
+    req.session.user = {
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email
+    };
+
+    req.flash('success', 'Registration successful!');
     res.redirect('/dashboard');
+    
   } catch (error) {
-    // Log error and redirect back to registration with generic error message
     console.error('Registration error:', error);
-    req.flash('error', 'An error occurred during registration');
-    res.redirect('/register');
+    
+    // Handle validation errors
+    if (error.name === 'SequelizeValidationError') {
+      const validationErrors = error.errors.map(err => err.message);
+      req.flash('error', validationErrors[0]); // Show first error
+    } else {
+      req.flash('error', 'Error registering new user');
+    }
+    
+    res.redirect('/auth/register');
   }
 });
 

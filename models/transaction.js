@@ -1,7 +1,7 @@
 // Import necessary modules from Sequelize
 import { DataTypes } from 'sequelize';
 // Import the database connection configuration
-import sequelize from '../config/dbConnection.js';
+import sequelize from '../config/database.js';
 // Import the User model to establish the relationship between User and Transaction
 import User from './User.js';
 
@@ -11,8 +11,7 @@ const Transaction = sequelize.define('Transaction', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
-    autoIncrement: true,
-    allowNull: false
+    autoIncrement: true
   },
   // Define the 'amount' field to store the transaction amount
   // DECIMAL(10, 2) allows for 10 digits in total, with 2 decimal places
@@ -23,7 +22,7 @@ const Transaction = sequelize.define('Transaction', {
   // Define the 'type' field as an ENUM to restrict possible values
   // This ensures that transactions can only be of type 'deposit', 'withdrawal', or 'transfer'
   type: {
-    type: DataTypes.ENUM('deposit', 'withdrawal', 'transfer'),
+    type: DataTypes.ENUM('deposit', 'withdrawal'),
     allowNull: false
   },
   // Define the 'description' field for additional transaction details
@@ -45,6 +44,11 @@ const Transaction = sequelize.define('Transaction', {
   // Additional model options
   tableName: 'transactions', // Explicitly set the table name in the database
   timestamps: true, // Automatically add and manage createdAt and updatedAt fields
+  indexes: [
+    {
+      fields: ['user_id', 'createdAt']
+    }
+  ]
 });
 
 // Define the association between Transaction and User models

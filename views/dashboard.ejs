@@ -1,5 +1,9 @@
 <%- include('partials/header') %>
 
+<!-- Add notification container -->
+<div class="notification-container"></div>
+
+<!-- Rest of your dashboard content -->
 <section class="container my-4">
     <section class="row g-4">
         <section class="col-md-6">
@@ -41,6 +45,17 @@
             <section class="card">
                 <section class="card-body">
                     <h3 class="card-title">Recent Transactions</h3>
+                    
+                    <!-- Add Filter and Search Controls -->
+                    <div class="mb-3">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary active" data-filter="all">All</button>
+                            <button type="button" class="btn btn-outline-success" data-filter="deposit">Deposits</button>
+                            <button type="button" class="btn btn-outline-danger" data-filter="withdrawal">Withdrawals</button>
+                        </div>
+                        <input type="text" id="searchTransactions" class="form-control mt-2" placeholder="Search transactions...">
+                    </div>
+
                     <section class="table-responsive">
                         <table class="table">
                             <thead>
@@ -51,15 +66,21 @@
                                     <th>Description</th>
                                 </tr>
                             </thead>
-                            <tbody id="recentTransactions">
-                                <% transactions.forEach(function(transaction) { %>
-                                <tr>
-                                    <td><%= new Date(transaction.createdAt).toLocaleString() %></td>
-                                    <td><%= transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1) %></td>
-                                    <td>$<%= parseFloat(transaction.amount).toFixed(2) %></td>
-                                    <td><%= transaction.description %></td>
-                                </tr>
-                                <% }); %>
+                            <tbody id="transactionsTableBody">
+                                <% if (locals.transactions && transactions.length > 0) { %>
+                                    <% transactions.forEach(function(transaction) { %>
+                                        <tr data-type="<%= transaction.type %>">
+                                            <td><%= new Date(transaction.createdAt).toLocaleString() %></td>
+                                            <td><%= transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1) %></td>
+                                            <td>$<%= parseFloat(transaction.amount).toFixed(2) %></td>
+                                            <td><%= transaction.description %></td>
+                                        </tr>
+                                    <% }); %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="4" class="text-center">No transactions found</td>
+                                    </tr>
+                                <% } %>
                             </tbody>
                         </table>
                     </section>
@@ -69,7 +90,9 @@
     </section>
 </section>
 
+<!-- Scripts -->
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="/js/notifications.js"></script>
 
 <script>
   // Socket.io implementation
@@ -101,48 +124,173 @@
 </script>
 
 <script>
-  // Dashboard functionality
-  document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     const transactionForm = document.getElementById('transactionForm');
-    const balanceElement = document.getElementById('balance');
+    const balanceDisplay = document.getElementById('balance');
+    const transactionsTableBody = document.getElementById('transactionsTableBody');
 
+    // Handle form submission
     transactionForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+        e.preventDefault();
 
-      const type = document.getElementById('transactionType').value;
-      const amount = document.getElementById('amount').value;
-      const description = document.getElementById('description').value;
+        try {
+            const formData = {
+                type: document.getElementById('transactionType').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                description: document.getElementById('description').value
+            };
 
-      try {
-        const response = await fetch('/api/transaction', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ type, amount, description }),
-        });
+            if (isNaN(formData.amount) || formData.amount <= 0) {
+                throw new Error('Please enter a valid amount');
+            }
 
-        if (!response.ok) {
-          throw new Error('Transaction failed');
+            const response = await fetch('/api/transaction', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Transaction failed');
+            }
+
+            // Update balance display
+            balanceDisplay.textContent = `$${parseFloat(result.newBalance).toFixed(2)}`;
+
+            // Create new transaction row
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td>${new Date(result.transaction.createdAt).toLocaleString()}</td>
+                <td>${result.transaction.type.charAt(0).toUpperCase() + result.transaction.type.slice(1)}</td>
+                <td>$${parseFloat(result.transaction.amount).toFixed(2)}</td>
+                <td>${result.transaction.description}</td>
+            `;
+
+            // Insert the new row at the beginning of the table
+            if (transactionsTableBody) {
+                // Remove "No transactions found" row if it exists
+                if (transactionsTableBody.querySelector('td[colspan="4"]')) {
+                    transactionsTableBody.innerHTML = '';
+                }
+
+                // Insert new row at the beginning
+                transactionsTableBody.insertBefore(newRow, transactionsTableBody.firstChild);
+
+                // Remove last row if more than 5 transactions
+                const rows = transactionsTableBody.getElementsByTagName('tr');
+                if (rows.length > 5) {
+                    transactionsTableBody.removeChild(rows[rows.length - 1]);
+                }
+            }
+
+            // Reset form
+            transactionForm.reset();
+
+            // Show success message
+            showNotification('Transaction successful!', 'success');
+        } catch (error) {
+            console.error('Transaction error:', error);
+            showNotification(error.message || 'Transaction failed', 'error');
+        }
+    });
+
+    // Socket.IO event handlers
+    const socket = io();
+
+    socket.on('transactionComplete', (data) => {
+        if (balanceDisplay) {
+            balanceDisplay.textContent = `$${parseFloat(data.newBalance).toFixed(2)}`;
         }
 
-        const data = await response.json();
+        if (transactionsTableBody && data.transaction) {
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td>${new Date(data.transaction.createdAt).toLocaleString()}</td>
+                <td>${data.transaction.type.charAt(0).toUpperCase() + data.transaction.type.slice(1)}</td>
+                <td>$${parseFloat(data.transaction.amount).toFixed(2)}</td>
+                <td>${data.transaction.description}</td>
+            `;
 
-        // Update balance
-        balanceElement.textContent = `$${parseFloat(data.balance).toFixed(2)}`;
-
-        // Clear form
-        transactionForm.reset();
-
-        // Show success message
-        alert('Transaction successful!');
-
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Transaction failed. Please try again.');
-      }
+            transactionsTableBody.insertBefore(newRow, transactionsTableBody.firstChild);
+            
+            const rows = transactionsTableBody.getElementsByTagName('tr');
+            if (rows.length > 5) {
+                transactionsTableBody.removeChild(rows[rows.length - 1]);
+            }
+        }
     });
-  });
+
+    // Add transaction filtering functionality
+    const filterButtons = document.querySelectorAll('[data-filter]');
+    const searchInput = document.getElementById('searchTransactions');
+    const transactionRows = document.querySelectorAll('#transactionsTableBody tr[data-type]');
+
+    function filterTransactions() {
+        const activeFilter = document.querySelector('[data-filter].active').dataset.filter;
+        const searchTerm = searchInput.value.toLowerCase();
+
+        transactionRows.forEach(row => {
+            const type = row.dataset.type;
+            const text = row.textContent.toLowerCase();
+            const matchesFilter = activeFilter === 'all' || type === activeFilter;
+            const matchesSearch = text.includes(searchTerm);
+            row.style.display = matchesFilter && matchesSearch ? '' : 'none';
+        });
+    }
+
+    // Filter button click handlers
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            filterTransactions();
+        });
+    });
+
+    // Search input handler
+    searchInput.addEventListener('input', filterTransactions);
+
+    // Update the transaction table with new row
+    function addNewTransaction(transaction) {
+        const newRow = document.createElement('tr');
+        newRow.dataset.type = transaction.type;
+        newRow.innerHTML = `
+            <td>${new Date(transaction.createdAt).toLocaleString()}</td>
+            <td>${transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}</td>
+            <td>$${parseFloat(transaction.amount).toFixed(2)}</td>
+            <td>${transaction.description}</td>
+        `;
+
+        const tbody = document.getElementById('transactionsTableBody');
+        const noTransactionsRow = tbody.querySelector('td[colspan="4"]')?.parentElement;
+        if (noTransactionsRow) {
+            tbody.removeChild(noTransactionsRow);
+        }
+
+        tbody.insertBefore(newRow, tbody.firstChild);
+        filterTransactions(); // Apply current filters to new row
+
+        // Remove last row if more than 5 transactions
+        const rows = tbody.getElementsByTagName('tr');
+        if (rows.length > 5) {
+            tbody.removeChild(rows[rows.length - 1]);
+        }
+    }
+
+    // Update the socket.io handler to use the new addNewTransaction function
+    socket.on('transactionComplete', (data) => {
+        if (balanceDisplay) {
+            balanceDisplay.textContent = `$${parseFloat(data.newBalance).toFixed(2)}`;
+        }
+        if (data.transaction) {
+            addNewTransaction(data.transaction);
+        }
+    });
+});
 </script>
 
 <%- include('partials/footer') %>

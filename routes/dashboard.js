@@ -2,6 +2,7 @@ import express from 'express';
 import User  from '../models/User.js';
 import  Transaction  from '../models/Transaction.js';
 import { Op } from 'sequelize';
+import sequelize from '../config/database.js';
 
 const router = express.Router();
 
@@ -71,23 +72,24 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const user = await User.findByPk(req.session.user.id);
     if (!user) {
       req.session.destroy();
-      return res.redirect('/login');
+      return res.redirect('/auth/login');
     }
 
-    const recentTransactions = await Transaction.findAll({
+    const transactions = await Transaction.findAll({
       where: { user_id: user.id },
-      order: [['timestamp', 'DESC']],
+      order: [['createdAt', 'DESC']],
       limit: 5
     });
 
     res.render('dashboard', {
       user: user,
       balance: user.balance,
-      recentTransactions: recentTransactions
+      transactions: transactions
     });
   } catch (error) {
     console.error('Error in dashboard route:', error);
-    res.status(500).render('error', { message: 'An error occurred while loading the dashboard.' });
+    req.flash('error', 'An error occurred while loading the dashboard');
+    res.redirect('/');
   }
 });
 
@@ -125,39 +127,63 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 router.post('/api/transaction', requireAuth, async (req, res) => {
   try {
     const { amount, type, description } = req.body;
-    const user = await User.findByPk(req.session.user.id);
+    const userId = req.session.user.id;
 
-    if (!user) {
-      return res.status(400).json({ error: 'User not found' });
-    }
+    // Start a transaction using the sequelize instance
+    const result = await sequelize.transaction(async (t) => {
+      // Find user with transaction lock
+      const user = await User.findByPk(userId, { 
+        lock: true,
+        transaction: t 
+      });
 
-    if (type === 'withdrawal' && user.balance < amount) {
-      return res.status(400).json({ error: 'Insufficient funds' });
-    }
+      if (!user) {
+        throw new Error('User not found');
+      }
 
-    const transaction = await Transaction.create({
-      amount,
-      type,
-      description,
-      user_id: user.id,
-      timestamp: new Date()
+      // Validate amount
+      const numAmount = parseFloat(amount);
+      if (isNaN(numAmount) || numAmount <= 0) {
+        throw new Error('Invalid amount');
+      }
+
+      // Check sufficient funds for withdrawal
+      if (type === 'withdrawal' && user.balance < numAmount) {
+        throw new Error('Insufficient funds');
+      }
+
+      // Create transaction record
+      const transaction = await Transaction.create({
+        amount: numAmount,
+        type,
+        description,
+        user_id: userId
+      }, { transaction: t });
+
+      // Update user balance
+      const newBalance = type === 'deposit' 
+        ? parseFloat(user.balance) + numAmount 
+        : parseFloat(user.balance) - numAmount;
+      
+      user.balance = newBalance;
+      await user.save({ transaction: t });
+
+      return { transaction, newBalance };
     });
 
-    if (type === 'deposit') {
-      user.balance += amount;
-    } else {
-      user.balance -= amount;
-    }
-
-    await user.save();
-
-    res.json({
-      balance: user.balance,
-      transaction: transaction
+    // Emit socket event for real-time updates
+    req.app.get('io').emit('transactionComplete', {
+      transaction: result.transaction,
+      newBalance: result.newBalance
     });
+
+    res.json(result);
+
   } catch (error) {
-    console.error('Error in transaction creation:', error);
-    res.status(500).json({ error: 'An error occurred while processing the transaction.' });
+    console.error('Transaction error:', error);
+    res.status(400).json({ 
+      error: error.message || 'Transaction failed' 
+    });
   }
 });
 
@@ -194,7 +220,8 @@ router.get('/transactions', requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error in transactions route:', error);
-    res.status(500).render('error', { message: 'An error occurred while loading transactions.' });
+    req.flash('error', 'An error occurred while loading transactions');
+    res.redirect('/dashboard');
   }
 });
 

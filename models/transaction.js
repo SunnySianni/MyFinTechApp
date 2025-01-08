@@ -39,6 +39,14 @@ const Transaction = sequelize.define('Transaction', {
       model: User, // This establishes the relationship with the User model
       key: 'id'    // This specifies which column in the User model to reference
     }
+  },
+  edited: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  edit_reason: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   // Additional model options

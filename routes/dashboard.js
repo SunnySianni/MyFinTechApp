@@ -225,4 +225,100 @@ router.get('/transactions', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/transaction/{id}:
+ *   put:
+ *     summary: Edit a transaction
+ *     description: Edits a transaction
+ *     security:
+ *       - session: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               amount:
+ *                 type: number
+ *               description:
+ *                 type: string
+ *               editReason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Transaction edited successfully
+ *       400:
+ *         description: Insufficient funds or invalid input
+ *       500:
+ *         description: Server error
+ */
+router.put('/api/transaction/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount, description, editReason } = req.body;
+    const userId = req.session.user.id;
+
+    const result = await sequelize.transaction(async (t) => {
+      // Find transaction and lock it
+      const transaction = await Transaction.findOne({
+        where: { id, user_id: userId },
+        lock: true,
+        transaction: t
+      });
+
+      if (!transaction) {
+        throw new Error('Transaction not found');
+      }
+
+      // Calculate balance difference
+      const amountDiff = parseFloat(amount) - parseFloat(transaction.amount);
+      
+      // Find and lock user
+      const user = await User.findByPk(userId, {
+        lock: true,
+        transaction: t
+      });
+
+      // Check if user has sufficient funds for withdrawal adjustment
+      if (transaction.type === 'withdrawal' && user.balance < amountDiff) {
+        throw new Error('Insufficient funds for this adjustment');
+      }
+
+      // Update user balance
+      if (transaction.type === 'deposit') {
+        user.balance = parseFloat(user.balance) + amountDiff;
+      } else {
+        user.balance = parseFloat(user.balance) - amountDiff;
+      }
+
+      // Update transaction
+      transaction.amount = amount;
+      transaction.description = description;
+      transaction.edited = true;
+      transaction.edit_reason = editReason;
+
+      // Save changes
+      await Promise.all([
+        user.save({ transaction: t }),
+        transaction.save({ transaction: t })
+      ]);
+
+      return { transaction, newBalance: user.balance };
+    });
+
+    // Emit socket event for real-time updates
+    req.app.get('io').emit('transactionEdited', {
+      transaction: result.transaction,
+      newBalance: result.newBalance
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Transaction edit error:', error);
+    res.status(400).json({ error: error.message || 'Failed to edit transaction' });
+  }
+});
+
 export default router;

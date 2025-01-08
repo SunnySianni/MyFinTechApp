@@ -3,7 +3,7 @@ import { DataTypes } from 'sequelize';
 // Import the database connection configuration
 import sequelize from '../config/dbConnection.js';
 // Import the User model to establish the relationship between User and Transaction
-import User from './User.js';
+import User from './user.js';
 
 // Define the Transaction model
 const Transaction = sequelize.define('Transaction', {
